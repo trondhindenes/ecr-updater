@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ecr-updater
+---
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: ecr-updater
+  labels:
+    k8s-app: ecr-updater
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: ecr-updater
+  template:
+    metadata:
+      labels:
+        k8s-app: ecr-updater
+        name: ecr-updater
+    spec:
+      serviceAccountName: ecr-updater
+      containers:
+      - image: trondhindenes/k8s-ecrupdater
+        name: ecrupdater
+        env:
+        - name: K8S_PULL_SECRET_NAME
+          value: ecr
+        - name: AWS_DEFAULT_REGION
+          value: eu-west-1
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: ecr-aws-credentials
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ecr-aws-credentials
+              key: AWS_SECRET_ACCESS_KEY
+      - image: palmstonegames/kubectl-proxy
+        name: kubectl-proxy

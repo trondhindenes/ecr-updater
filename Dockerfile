@@ -9,5 +9,4 @@ RUN python get-pip.py
 RUN pip install boto3 kubernetes
 WORKDIR /app
 COPY ./ecrupdater.py /app/ecrupdater.py
-ENTRYPOINT ["python"]
-CMD ["ecrupdater.py"]
+CMD ["python", "-u", "ecrupdater.py"]

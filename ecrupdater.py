@@ -65,7 +65,7 @@ def update_ecr():
 
 if __name__ == '__main__':
     print("Sleeping on first startup")
-    time.sleep(60)
+    time.sleep(5)
     while True:
         print("Running update loop")
         update_ecr()

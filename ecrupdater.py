@@ -21,6 +21,7 @@ if pull_secret_name is None:
 
 
 def update_ecr():
+    print('starting update loop')
     client = boto3.client('ecr')
     response = client.get_authorization_token()
     token = response['authorizationData'][0]['authorizationToken']
@@ -35,16 +36,18 @@ def update_ecr():
     v1 = k8sclient.CoreV1Api(api_client=myapiclient)
     secrets = v1.list_secret_for_all_namespaces()
 
-    registry_secrets = [x for x in secrets._items if x.metadata.name == pull_secret_name]
-    for secret in registry_secrets:
+    
 
+    registry_secrets = [x for x in secrets._items if x.metadata.name == pull_secret_name]
+    print('pull secret name to search for: ' + pull_secret_name)
+    print('found {} registry_secrets matching name'.format(str(len(registry_secrets))))
+    for secret in registry_secrets:
         k8s_secret = {server:
                         {
                             "username": registry_username,
                             "password": registry_password
                         }
                     }
-
         body = {
             "kind": "Secret",
             "apiVersion": "v1",

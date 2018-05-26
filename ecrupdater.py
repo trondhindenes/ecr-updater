@@ -14,10 +14,12 @@ env_update_interval = os.getenv('ECR_UPDATE_INTERVAL', '3600')
 try:
     update_interval = int(env_update_interval)
 except:
-    raise ValueError(str.format('unable to parse {0} into seconds, exiting', env_update_interval))
+    raise ValueError(str.format(
+        'unable to parse {0} into seconds, exiting', env_update_interval))
 
 if pull_secret_name is None:
-    raise ValueError('Specify name of secret in env variable K8S_PULL_SECRET_NAME')
+    raise ValueError(
+        'Specify name of secret in env variable K8S_PULL_SECRET_NAME')
 
 
 def update_ecr():
@@ -36,32 +38,61 @@ def update_ecr():
     v1 = k8sclient.CoreV1Api(api_client=myapiclient)
     secrets = v1.list_secret_for_all_namespaces()
 
-    
-
-    registry_secrets = [x for x in secrets._items if x.metadata.name == pull_secret_name]
+    registry_secrets = [
+        x for x in secrets._items if x.metadata.name == pull_secret_name]
     print('pull secret name to search for: ' + pull_secret_name)
-    print('found {} registry_secrets matching name'.format(str(len(registry_secrets))))
+    print('found {} registry_secrets matching name'.format(
+        str(len(registry_secrets))))
     for secret in registry_secrets:
-        k8s_secret = {server:
-                        {
-                            "username": registry_username,
-                            "password": registry_password
-                        }
+        secret_name = secret.metadata.name
+        if secret.type == 'kubernetes.io/dockercfg':
+            print('Updating secret {} (type kubernetes.io/dockercfg)'.format(secret_name))
+            k8s_secret = {server:
+                          {
+                              "username": registry_username,
+                              "password": registry_password
+                          }
+                          }
+            body = {
+                "kind": "Secret",
+                "apiVersion": "v1",
+                "metadata": {
+                    "name": "ecr",
+                    "creationTimestamp": None
+                },
+                "data": {
+                    ".dockercfg": base64.b64encode(bytes(json.dumps(k8s_secret)), 'utf-8')
+                },
+                "type": "kubernetes.io/dockercfg"
+            }
+            res = v1.patch_namespaced_secret(
+                secret.metadata.name, secret.metadata.namespace, body)
+        elif secret.type == 'kubernetes.io/dockerconfigjson':
+            print('Updating secret {} (type kubernetes.io/dockerconfigjson)'.format(secret_name))
+            k8s_secret = {
+                'auths': {
+                    server: {
+                        "username": registry_username,
+                        "password": registry_password
                     }
-        body = {
-            "kind": "Secret",
-            "apiVersion": "v1",
-            "metadata": {
-                "name": "ecr",
-                "creationTimestamp": None
-            },
-            "data": {
-                ".dockercfg": base64.b64encode(bytes(json.dumps(k8s_secret)), 'utf-8')
-            },
-            "type": "kubernetes.io/dockercfg"
-        }
-        res = v1.patch_namespaced_secret(secret.metadata.name, secret.metadata.namespace, body)
-
+                }
+            }
+            body = {
+                "kind": "Secret",
+                "apiVersion": "v1",
+                "metadata": {
+                    "name": "ecr",
+                    "creationTimestamp": None
+                },
+                "data": {
+                    ".dockerconfigjson": base64.b64encode(bytes(json.dumps(k8s_secret)), 'utf-8')
+                },
+                "type": "kubernetes.io/dockerconfigjson"
+            }
+            res = v1.patch_namespaced_secret(
+                secret.metadata.name, secret.metadata.namespace, body)
+        else:
+            print('Unknown secret type for secret {}: {}'.format(secret_name, secret.type))
 
 if __name__ == '__main__':
     print("Sleeping on first startup")
@@ -71,4 +102,3 @@ if __name__ == '__main__':
         update_ecr()
         print(str.format("...done. Waiting {0} seconds", str(update_interval)))
         time.sleep(update_interval)
-

@@ -6,7 +6,8 @@ RUN apt-get update \
     && apt-get -y autoremove \
     && rm -rf /var/lib/apt/lists/*
 RUN python get-pip.py
-RUN pip install boto3 kubernetes
+RUN pip install boto3 
+RUN pip install kubernetes==3.0.0
 WORKDIR /app
 COPY ./ecrupdater.py /app/ecrupdater.py
 CMD ["python", "-u", "ecrupdater.py"]

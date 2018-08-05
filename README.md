@@ -6,11 +6,15 @@ This allows the use of AWS ECR registries also when your Kubernetes cluster is r
 
 ## Configuration
 Configure with the following environment variables:   
+```
 K8S_PULL_SECRET_NAME: Name of the Kubernetes docker secret to update   
 ECR_UPDATE_INTERVAL: (optional, time in seconds)   
 AWS_DEFAULT_REGION: (set to your region)   
 AWS_ACCESS_KEY_ID: aws creds   
 AWS_SECRET_ACCESS_KEY: aws creds   
+```
+
+Note that if you're using alternate methods of providing the pod with AWS credentials (such as kube2iam or similar) you can skip the `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` configuration items.
 
 ## Example deployment
 It is assumed that you already have ECR setup, an IAM user with access to it, and that you have `kubectl` configured to communicate with your Kubernetes cluster.

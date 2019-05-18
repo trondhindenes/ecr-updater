@@ -1,0 +1,6 @@
+.venv
+.env
+.idea
+.vscode
+example_deployment
+README.md

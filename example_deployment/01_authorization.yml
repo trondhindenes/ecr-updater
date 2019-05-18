@@ -10,6 +10,13 @@ rules:
       - secrets
       - configmaps
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # The rule below is only needed when auto-creating pull secrets in all namespaces
+  # See ECR_CREATE_MISSING in README.md
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs: ["get", "list"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1

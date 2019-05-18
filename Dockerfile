@@ -1,13 +1,6 @@
-FROM ubuntu
-RUN apt-get update \
-    && apt-get install -y wget python curl \
-    && curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py" \
-    && apt-get remove --purge -y curl \
-    && apt-get -y autoremove \
-    && rm -rf /var/lib/apt/lists/*
-RUN python get-pip.py
-RUN pip install boto3 
-RUN pip install kubernetes==3.0.0
+FROM python:3.6
+RUN pip install pipenv
 WORKDIR /app
-COPY ./ecrupdater.py /app/ecrupdater.py
+COPY . .
+RUN pipenv install --system --deploy
 CMD ["python", "-u", "ecrupdater.py"]

@@ -4,6 +4,8 @@ This image pulls credentials from ECR every hour, and injects them into Kubernet
 
 This allows the use of AWS ECR registries also when your Kubernetes cluster is running in another cloud provider, or you don't want to set up EC2 roles for it.
 
+Grab container images from: https://cloud.docker.com/u/trondhindenes/repository/docker/trondhindenes/k8s-ecrupdater
+
 ## Configuration
 Configure with the following environment variables:   
 ```
@@ -23,7 +25,7 @@ It is assumed that you already have ECR setup, an IAM user with access to it, an
 
 You can also run it locally using `kubectl proxy` on your computer if you want to test things out. In that case, make sure the proxy listens on `localhost:8001`
 
-1. Create a secret called ecr. This is the secret that this pod will update regularly. It doesn't matter what you put in here, as ecrupdater will update it, it just needs to exist.:
+1. (this step is only required if `ECR_CREATE_MISSING` is not set to true) Create a secret called ecr. This is the secret that this pod will update regularly. It doesn't matter what you put in here, as ecrupdater will update it, it just needs to exist.:
 `kubectl create secret docker-registry ecr --docker-username=smash --docker-password=lol --docker-email lol@lol.com`   
 NOTE: `ecrupdater` will look for the secrets with the specified name across all your namespaces if you're using the authorization template below. So in this example any secret named `ecr` across all namespaces will be updated. If you want to separate them you can run multiple instances of `ecrupdater`, optionally with tighter (namespaces-isolated) security.
 

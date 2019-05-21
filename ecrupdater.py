@@ -76,6 +76,7 @@ def update_ecr():
     response = client.get_authorization_token()
     token = response['authorizationData'][0]['authorizationToken']
     server = response['authorizationData'][0]['proxyEndpoint']
+    bare_server = server.replace('https://', '')
     decoded_token = base64.b64decode(token).decode('utf-8')
     registry_username = decoded_token.split(':')[0]
     registry_password = decoded_token.split(':')[1]
@@ -119,7 +120,7 @@ def update_ecr():
             print(f'Updating secret {secret_name} (type kubernetes.io/dockerconfigjson) in namespace {secret.metadata.namespace}')
             k8s_secret = {
                 'auths': {
-                    'server': {
+                    bare_server: {
                         'username': registry_username,
                         'password': registry_password
                     }

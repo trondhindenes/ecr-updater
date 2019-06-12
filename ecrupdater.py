@@ -67,7 +67,10 @@ def create_pull_secrets():
                 'type': 'kubernetes.io/dockerconfigjson'
             }
             print(f'Creating secret {pull_secret_name} in namespace {namespace.metadata.name}')
-            v1.create_namespaced_secret(namespace.metadata.name, secret_body)
+            try:
+                v1.create_namespaced_secret(namespace.metadata.name, secret_body)
+            except Exception as e:
+                print(str(e))
 
 
 def update_ecr():

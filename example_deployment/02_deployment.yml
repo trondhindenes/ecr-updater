@@ -4,6 +4,35 @@ kind: ServiceAccount
 metadata:
   name: ecr-updater
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-configuration
+data:
+  logging.json: |
+    {
+      "version": 1,
+      "disable_existing_loggers": false,
+      "formatters": {
+        "json": {
+          "format": "%(asctime)s %(levelname)s %(message)s %(pathname)s %(lineno)d %(threadName)s",
+          "class": "pythonjsonlogger.jsonlogger.JsonFormatter"
+        }
+      },
+      "handlers": {
+        "json": {
+          "class": "logging.StreamHandler",
+          "formatter": "json"
+        }
+      },
+      "loggers": {
+        "": {
+          "handlers": [ "json" ],
+          "level": "INFO"
+        }
+      }
+    }
+---
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -40,5 +69,14 @@ spec:
             secretKeyRef:
               name: ecr-aws-credentials
               key: AWS_SECRET_ACCESS_KEY
+        - name: LOG_CONFIG
+          value: /etc/log-configuration/logging.json
+        volumeMounts:
+        - mountPath: /etc/log-configuration
+          name: log-configuration
       - image: palmstonegames/kubectl-proxy
         name: kubectl-proxy
+      volumes:
+      - name: log-configuration
+        configMap:
+          name: log-configuration

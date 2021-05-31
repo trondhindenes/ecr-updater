@@ -7,20 +7,21 @@ import boto3
 import logging
 import logging.config
 from kubernetes import client as k8sclient
-from kubernetes.client import Configuration, ApiClient
+from kubernetes.client import Configuration, ApiClient, ApiException
 
 
 def setup_logging(
-        log_config_path=os.environ.get('LOG_CONFIG_PATH', 'logging.json'),
-        default_level=logging.INFO,
+        log_config_file=os.environ.get('LOG_CONFIG', './logging.json'),
+        # fallback if no logger config file has been configured
+        default_level=os.environ.get('LOG_LEVEL', 'INFO')
 ):
-    if os.path.exists(log_config_path):
-        print("Loading log configuration file from path '{}'...".format(log_config_path))
-        with open(log_config_path, 'rt') as f:
+    if os.path.exists(log_config_file):
+        print("Loading log configuration file from path '{}'...".format(log_config_file))
+        with open(log_config_file, 'rt') as f:
             config = json.load(f)
         logging.config.dictConfig(config)
     else:
-        print("Loading default configuration.")
+        print("No Log config file provided, loading default configuration.")
         logging.basicConfig(level=default_level)
 
 
@@ -86,8 +87,10 @@ def create_pull_secrets():
             logger.info('Creating secret "%s" in namespace "%s"', pull_secret_name, namespace.metadata.name)
             try:
                 v1.create_namespaced_secret(namespace.metadata.name, secret_body)
-            except Exception:
-                logger.exception('Could not create secret "%s" in namespace "%s"', pull_secret_name, namespace.metadata.name)
+            except ApiException:
+                logger.exception('Could not create secret "%s" in namespace "%s"',
+                                 pull_secret_name,
+                                 namespace.metadata.name)
 
 
 def update_ecr():
@@ -112,7 +115,9 @@ def update_ecr():
     for secret in registry_secrets:
         secret_name = secret.metadata.name
         if secret.type == 'kubernetes.io/dockercfg':
-            logger.info('Updating secret "%s" (type kubernetes.io/dockercfg) in namespace "%s"', secret_name, secret.metadata.namespace)
+            logger.info('Updating secret "%s" (type kubernetes.io/dockercfg) in namespace "%s"',
+                        secret_name,
+                        secret.metadata.namespace)
             k8s_secret = {
                 server:
                     {
@@ -136,7 +141,9 @@ def update_ecr():
             }
             res = v1.patch_namespaced_secret(secret.metadata.name, secret.metadata.namespace, body)
         elif secret.type == 'kubernetes.io/dockerconfigjson':
-            logger.info('Updating secret "%s" (type kubernetes.io/dockerconfigjson) in namespace "%s"', secret_name, secret.metadata.namespace)
+            logger.info('Updating secret "%s" (type kubernetes.io/dockerconfigjson) in namespace "%s"',
+                        secret_name,
+                        secret.metadata.namespace)
             k8s_secret = {
                 'auths': {
                     bare_server: {

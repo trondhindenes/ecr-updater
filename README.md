@@ -15,7 +15,9 @@ ECR_CREATE_MISSING: if this envvar is set to `true`, missing pull secrets will b
 (there's a good chance this will fail on older (pre 1.11) clusters.   
 AWS_DEFAULT_REGION: (set to your region)   
 AWS_ACCESS_KEY_ID: aws creds   
-AWS_SECRET_ACCESS_KEY: aws creds   
+AWS_SECRET_ACCESS_KEY: aws creds
+LOG_CONFIG: optional log config file (defaults to ./logging.json)   
+LOG_LEVEL: Applies only if no log config file has been found (defaults to INFO)   
 ```
 
 Note that if you're using alternate methods of providing the pod with AWS credentials (such as kube2iam or similar) you can skip the `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` configuration items.
@@ -49,9 +51,12 @@ Make sure to set your correct aws region in `example_deployment/02_deployment.ym
 ## Logging
 By default, the service logs using the built in python logging package and the python-json-logger package for the json formatting.
 In order to change the log configuration, the service expects a log config file 'logging.json' in the working directory.
-Alternatively, this log config file path can be configured via the ENV variable `LOG_CONFIG_PATH` using a configMap.
+Alternatively, this log config file path can be configured via the ENV variable `LOG_CONFIG` using a configMap.
 
-example log config file -> logging.json
+### Logger config docs
+* https://docs.python.org/3/library/logging.config.html
+
+example log config file to enable JSON logging on INFO level.
 ```
 {
   "version": 1,

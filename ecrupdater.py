@@ -40,7 +40,7 @@ pull_secret_name = os.getenv('K8S_PULL_SECRET_NAME', None)
 env_update_interval = os.getenv('ECR_UPDATE_INTERVAL', '3600')
 create_missing_pull_secrets_str = os.getenv('ECR_CREATE_MISSING', 'false')
 # Allows the kubernetes python clients to talk to k8s via the kubectl-proxy sidecar container
-kubernetes_api_endpoint = os.getenv('KUBERNETES_API_ENDPOINT', 'localhost:8001')
+kubernetes_api_endpoint = os.getenv('KUBERNETES_API_ENDPOINT', 'http://localhost:8001')
 
 try:
     update_interval = int(env_update_interval)
@@ -57,7 +57,7 @@ def create_pull_secrets():
 
     k8s_config = Configuration()
     k8s_config.host = kubernetes_api_endpoint
-    k8s_api_client = ApiClient(config=k8s_config)
+    k8s_api_client = ApiClient(configuration=k8s_config)
     v1 = k8sclient.CoreV1Api(api_client=k8s_api_client)
     namespaces = v1.list_namespace()
     for namespace in namespaces.items:
@@ -84,11 +84,11 @@ def create_pull_secrets():
                 },
                 'type': 'kubernetes.io/dockerconfigjson'
             }
-            logger.info('Creating secret "%s" in namespace "%s"', pull_secret_name, namespace.metadata.name)
+            logger.info('Creating secret %s in namespace %s', pull_secret_name, namespace.metadata.name)
             try:
                 v1.create_namespaced_secret(namespace.metadata.name, secret_body)
             except ApiException:
-                logger.exception('Could not create secret "%s" in namespace "%s"',
+                logger.exception('Could not create secret %s in namespace %s',
                                  pull_secret_name,
                                  namespace.metadata.name)
 
@@ -111,11 +111,11 @@ def update_ecr():
     secrets = v1.list_secret_for_all_namespaces()
 
     registry_secrets = [x for x in secrets.items if x.metadata.name == pull_secret_name]
-    logger.info('Found %s registry_secrets matching name "%s"', len(registry_secrets), pull_secret_name)
+    logger.info('Found %s registry_secrets matching name %s', len(registry_secrets), pull_secret_name)
     for secret in registry_secrets:
         secret_name = secret.metadata.name
         if secret.type == 'kubernetes.io/dockercfg':
-            logger.info('Updating secret "%s" (type kubernetes.io/dockercfg) in namespace "%s"',
+            logger.info('Updating secret %s (type kubernetes.io/dockercfg) in namespace %s',
                         secret_name,
                         secret.metadata.namespace)
             k8s_secret = {
@@ -141,7 +141,7 @@ def update_ecr():
             }
             res = v1.patch_namespaced_secret(secret.metadata.name, secret.metadata.namespace, body)
         elif secret.type == 'kubernetes.io/dockerconfigjson':
-            logger.info('Updating secret "%s" (type kubernetes.io/dockerconfigjson) in namespace "%s"',
+            logger.info('Updating secret %s (type kubernetes.io/dockerconfigjson) in namespace %s',
                         secret_name,
                         secret.metadata.namespace)
             k8s_secret = {
@@ -167,7 +167,7 @@ def update_ecr():
             }
             res = v1.patch_namespaced_secret(secret.metadata.name, secret.metadata.namespace, body)
         else:
-            logger.warning('Unknown secret type for secret name "%s": %s'.format(secret_name, secret.type))
+            logger.warning('Unknown secret type for secret name %s: %s'.format(secret_name, secret.type))
 
 
 if __name__ == '__main__':

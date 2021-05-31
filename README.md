@@ -45,3 +45,34 @@ Make sure to set your correct aws region in `example_deployment/02_deployment.ym
 
 5. Test a deployment. Replace the containerimage with one from your own ecr registry, deploy it and prosper! (note that the ecrupdater initially pauses for 60 seconds, so make sure time has passed between the ecr updater pod coming online, and you run the next command)
 `kubectl apply -f example_deployment/03_pullsecret_test.yml`
+
+## Logging
+By default, the service logs using the built in python logging package and the python-json-logger package for the json formatting.
+In order to change the log configuration, the service expects a log config file 'logging.json' in the working directory.
+Alternatively, this log config file path can be configured via the ENV variable `LOG_CONFIG_PATH` using a configMap.
+
+example log config file -> logging.json
+```
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "json": {
+      "format": "%(asctime)s %(levelname)s %(message)s %(pathname)s %(lineno)d %(threadName)s",
+      "class": "pythonjsonlogger.jsonlogger.JsonFormatter"
+    }
+  },
+  "handlers": {
+    "json": {
+      "class": "logging.StreamHandler",
+      "formatter": "json"
+    }
+  },
+  "loggers": {
+    "": {
+      "handlers": ["json"],
+      "level": "INFO"
+    }
+  }
+}
+``` 

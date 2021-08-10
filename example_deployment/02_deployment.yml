@@ -52,6 +52,10 @@ spec:
     spec:
       serviceAccountName: ecr-updater
       containers:
+      - image: bitnami/kubectl:latest
+        args:
+        - proxy
+        name: kubectl-proxy
       - image: trondhindenes/k8s-ecrupdater
         name: ecrupdater
         env:
@@ -74,8 +78,6 @@ spec:
         volumeMounts:
         - mountPath: /etc/log-configuration
           name: log-configuration
-      - image: palmstonegames/kubectl-proxy
-        name: kubectl-proxy
       volumes:
       - name: log-configuration
         configMap:

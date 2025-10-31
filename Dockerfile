@@ -1,6 +1,6 @@
-FROM python:3.8-alpine
-RUN pip install pipenv
+FROM python:3.13
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 COPY . .
-RUN pipenv install --system --deploy
-CMD ["python", "-u", "ecrupdater.py"]
+RUN uv sync --locked
+CMD ["uv", "run", "ecrupdater.py"]

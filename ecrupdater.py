@@ -23,22 +23,15 @@ def setup_logging(
     else:
         print("No Log config file provided, loading default configuration.")
         logging.basicConfig(level=default_level)
-
-
-def exception_handler(exception_type, exception, traceback):
-    # Removes standard python stacktrace in case of exceptions
-    logger.warning("%s: %s", exception_type.__name__, exception)
-
-
-# Custom exception hook to hide traceback info from logs
-if not os.getenv('CDV2_DEBUG_ENABLED') == 'TRUE':
-    sys.excepthook = exception_handler
+setup_logging()
+logger = logging.getLogger(__name__)
 
 
 print('Starting ECR-updater ..')
 pull_secret_name = os.getenv('K8S_PULL_SECRET_NAME', None)
 env_update_interval = os.getenv('ECR_UPDATE_INTERVAL', '3600')
 create_missing_pull_secrets_str = os.getenv('ECR_CREATE_MISSING', 'false')
+skip_namespaces = os.getenv('ECR_SKIP_NAMESPACES', '')
 # Allows the kubernetes python clients to talk to k8s via the kubectl-proxy sidecar container
 kubernetes_api_endpoint = os.getenv('KUBERNETES_API_ENDPOINT', 'http://localhost:8001')
 
@@ -55,12 +48,20 @@ def create_pull_secrets():
     if create_missing_pull_secrets_str.lower() != 'true':
         return None
 
+    skip_namespaces_list = []
+    if skip_namespaces:
+        skip_namespaces_list = [x.strip() for x in skip_namespaces.split(',')]
+
+
     k8s_config = Configuration()
     k8s_config.host = kubernetes_api_endpoint
     k8s_api_client = ApiClient(configuration=k8s_config)
     v1 = k8sclient.CoreV1Api(api_client=k8s_api_client)
     namespaces = v1.list_namespace()
     for namespace in namespaces.items:
+        if namespace.metadata.name in skip_namespaces_list:
+            logger.info('Skipping namespace %s as it is in the skip list', namespace.metadata.name)
+            continue
         ns_secrets = v1.list_namespaced_secret(namespace.metadata.name)
         has_ecr_secret = [x for x in ns_secrets.items if x.metadata.name == pull_secret_name]
         if not has_ecr_secret:
@@ -171,8 +172,6 @@ def update_ecr():
 
 
 if __name__ == '__main__':
-    setup_logging()
-    logger = logging.getLogger(__name__)
     while True:
         logger.info('Running credentials update loop ..')
         create_pull_secrets()

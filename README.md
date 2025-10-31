@@ -4,7 +4,7 @@ This image pulls credentials from ECR every hour, and injects them into Kubernet
 
 This allows the use of AWS ECR registries also when your Kubernetes cluster is running in another cloud provider, or you don't want to set up EC2 roles for it.
 
-Grab container images from: https://cloud.docker.com/u/trondhindenes/repository/docker/trondhindenes/k8s-ecrupdater
+Grab container images from: https://github.com/trondhindenes/ecr-updater/pkgs/container/ecr-updater
 
 ## Configuration
 Configure with the following environment variables:   
@@ -13,6 +13,7 @@ K8S_PULL_SECRET_NAME: Name of the Kubernetes pull secret to update
 ECR_UPDATE_INTERVAL: (optional, time in seconds)
 ECR_CREATE_MISSING: if this envvar is set to `true`, missing pull secrets will be created in all namespaces
 (there's a good chance this will fail on older (pre 1.11) clusters.   
+ECR_SKIP_NAMESPACES: Comma-separated list of namespaces to skip when creating missing secrets   
 AWS_DEFAULT_REGION: (set to your region)   
 AWS_ACCESS_KEY_ID: aws creds   
 AWS_SECRET_ACCESS_KEY: aws creds

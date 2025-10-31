@@ -4,7 +4,7 @@ This image pulls credentials from ECR every hour, and injects them into Kubernet
 
 This allows the use of AWS ECR registries also when your Kubernetes cluster is running in another cloud provider, or you don't want to set up EC2 roles for it.
 
-Grab container images from: https://cloud.docker.com/u/trondhindenes/repository/docker/trondhindenes/k8s-ecrupdater
+Grab container images from: https://github.com/trondhindenes/ecr-updater/pkgs/container/ecr-updater
 
 ## Configuration
 Configure with the following environment variables:   

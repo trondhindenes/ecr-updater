@@ -26,13 +26,13 @@ Note that if you're using alternate methods of providing the pod with AWS creden
 ## Example deployment
 It is assumed that you already have ECR setup, an IAM user with access to it, and that you have `kubectl` configured to communicate with your Kubernetes cluster.
 
-You can also run it locally using `kubectl proxy` on your computer if you want to test things out. In that case, make sure the proxy listens on `localhost:8001`
+`ecrupdater` uses the in-cluster Kubernetes config when running inside a pod, and falls back to your local kubeconfig (`~/.kube/config`) when running outside the cluster, so no extra proxy is needed to test locally.
 
 1. (this step is only required if `ECR_CREATE_MISSING` is not set to true) Create a secret called ecr. This is the secret that this pod will update regularly. It doesn't matter what you put in here, as ecrupdater will update it, it just needs to exist.:
 `kubectl create secret docker-registry ecr --docker-username=smash --docker-password=lol --docker-email lol@lol.com`   
 NOTE: `ecrupdater` will look for the secrets with the specified name across all your namespaces if you're using the authorization template below. So in this example any secret named `ecr` across all namespaces will be updated. If you want to separate them you can run multiple instances of `ecrupdater`, optionally with tighter (namespaces-isolated) security.
 
-2. Create the authorization stuff that lets kubectl-proxy (running in the same pod as the ecr-updater) interact with kubernetes:
+2. Create the authorization stuff that lets ecr-updater interact with kubernetes:
 `kubectl apply -f example_deployment/01_authorization.yml`
 
 3. Create a IAM user that has read access to your registries. The access key and secret key need to be base64-encoded (remember to use the `-n` option):   
@@ -42,7 +42,7 @@ Put this info in the file `example_deployment/01_aws_credentials.yml.yml` in thi
 Now you can create a secret that will hold this info. This is how the ecr updater will log on to AWS:   
 `kubectl apply -f example_deployment/01_aws_credentials.yml`
 
-4. Deploy the pod. This contains both the ecr-updater and a "sidecar" container running kubectl-proxy. The proxy allows communication with the kubernetes api in a simple manner.
+4. Deploy the pod.
 Make sure to set your correct aws region in `example_deployment/02_deployment.yml` before deploying!
 `kubectl apply -f example_deployment/02_deployment.yml`   
 

@@ -74,8 +74,6 @@ spec:
         volumeMounts:
         - mountPath: /etc/log-configuration
           name: log-configuration
-      - image: palmstonegames/kubectl-proxy
-        name: kubectl-proxy
       volumes:
       - name: log-configuration
         configMap:

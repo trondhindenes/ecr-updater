@@ -1,5 +1,6 @@
 .venv
 .env
+.envrc
 .idea
 .vscode
 logging.json

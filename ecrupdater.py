@@ -7,7 +7,12 @@ import boto3
 import logging
 import logging.config
 from kubernetes import client as k8sclient
+from kubernetes import config
 from kubernetes.client import Configuration, ApiClient, ApiException
+from kubernetes.config.config_exception import ConfigException
+
+
+config.load_config()
 
 
 def setup_logging(
@@ -32,8 +37,12 @@ pull_secret_name = os.getenv('K8S_PULL_SECRET_NAME', None)
 env_update_interval = os.getenv('ECR_UPDATE_INTERVAL', '3600')
 create_missing_pull_secrets_str = os.getenv('ECR_CREATE_MISSING', 'false')
 skip_namespaces = os.getenv('ECR_SKIP_NAMESPACES', '')
-# Allows the kubernetes python clients to talk to k8s via the kubectl-proxy sidecar container
-kubernetes_api_endpoint = os.getenv('KUBERNETES_API_ENDPOINT', 'http://localhost:8001')
+
+# By default, we assume that the ECR server is the same as the ECR registry derived from AWS account + region.
+# Configure a comma-separated list if you have multiple ECR servers, for example if you're using cross-account granting
+image_repo_servers = os.getenv('ECR_IMAGE_REPO_SERVERS', None)
+add_default_repo_server = os.getenv('ECR_ADD_DEFAULT_REPO_SERVER', 'true')
+
 
 try:
     update_interval = int(env_update_interval)
@@ -52,10 +61,7 @@ def create_pull_secrets():
     if skip_namespaces:
         skip_namespaces_list = [x.strip() for x in skip_namespaces.split(',')]
 
-
-    k8s_config = Configuration()
-    k8s_config.host = kubernetes_api_endpoint
-    k8s_api_client = ApiClient(configuration=k8s_config)
+    k8s_api_client = ApiClient()
     v1 = k8sclient.CoreV1Api(api_client=k8s_api_client)
     namespaces = v1.list_namespace()
     for namespace in namespaces.items:
@@ -105,27 +111,31 @@ def update_ecr():
     registry_username = decoded_token.split(':')[0]
     registry_password = decoded_token.split(':')[1]
 
-    k8s_config = Configuration()
-    k8s_config.host = kubernetes_api_endpoint
-    k8s_api_client = ApiClient(configuration=k8s_config)
+    servers = image_repo_servers.split(',') if image_repo_servers else []
+    if add_default_repo_server.lower() == 'true':
+        servers.append(bare_server)
+
+    k8s_api_client = ApiClient()
     v1 = k8sclient.CoreV1Api(api_client=k8s_api_client)
     secrets = v1.list_secret_for_all_namespaces()
 
     registry_secrets = [x for x in secrets.items if x.metadata.name == pull_secret_name]
     logger.info('Found %s registry_secrets matching name %s', len(registry_secrets), pull_secret_name)
+
+    k8s_secret_blob = {}
+    for server in servers:
+        k8s_secret_blob[server] = {
+            'username': registry_username,
+            'password': registry_password
+        }
+
     for secret in registry_secrets:
         secret_name = secret.metadata.name
         if secret.type == 'kubernetes.io/dockercfg':
             logger.info('Updating secret %s (type kubernetes.io/dockercfg) in namespace %s',
                         secret_name,
                         secret.metadata.namespace)
-            k8s_secret = {
-                server:
-                    {
-                        'username': registry_username,
-                        'password': registry_password
-                    }
-            }
+            k8s_secret = k8s_secret_blob
 
             b64_k8s_secret = base64.b64encode(json.dumps(k8s_secret).encode('utf-8')).decode('utf-8')
             body = {
@@ -146,12 +156,7 @@ def update_ecr():
                         secret_name,
                         secret.metadata.namespace)
             k8s_secret = {
-                'auths': {
-                    bare_server: {
-                        'username': registry_username,
-                        'password': registry_password
-                    }
-                }
+                'auths': k8s_secret_blob
             }
             b64_k8s_secret = base64.b64encode(json.dumps(k8s_secret).encode('utf-8')).decode('utf-8')
             body = {
